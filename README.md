@@ -1,244 +1,120 @@
-# Moxton 三端项目开发中心
+# Moxton Docs Command Center
 
-> **统一任务管理和协调中心** | 最后更新: 2026-02-08
+This repository is the shared documentation and orchestration hub for three codebases:
 
-> **🎭 按角色组织任务**: 独立站前端、CRUD前端、后端 - 避免领错任务
+- `E:\nuxt-moxton` (SHOP-FE)
+- `E:\moxton-lotadmin` (ADMIN-FE)
+- `E:\moxton-lotapi` (BACKEND)
 
-## 🎯 快速导航
+It does not contain product source code. It contains task planning, team orchestration docs, API docs, guides, and verification reports.
 
-| 类别 | 入口 | 说明 |
-|------|------|------|
-| 🎭 **AI 角色** | [.claude/agents/](.claude/agents/) | 固定角色提示词 |
-| 🎯 **任务管理** | [01-tasks/STATUS.md](01-tasks/STATUS.md) | 任务状态总览 |
-| 📝 **任务编写** | [.claude/skills/development-plan-guide.md](.claude/skills/development-plan-guide.md) | 开发计划编写指南 |
-| 📡 **API 文档** | [02-api/README.md](02-api/) | 后端 API 规范 |
-| 📚 **集成指南** | [03-guides/](03-guides/) | 前端集成文档 |
-| 🏗️ **项目协调** | [04-projects/](04-projects/) | 三端项目状态 |
-| ✅ **验证报告** | [05-verification/](05-verification/) | 测试验证记录 |
+## Team Lead Rule
 
----
+When Codex runs in `E:\moxton-docs`, it must act as **Team Lead** by default.
 
-## 🎭 团队角色
+Only two modes are valid:
 
-| 角色 | 代码 | 项目 | 工作目录 |
-|------|------|------|----------|
-| 独立站前端工程师 | `SHOP-FE` | nuxt-moxton | `E:\nuxt-moxton` |
-| CRUD前端工程师 | `ADMIN-FE` | moxton-lotadmin | `E:\moxton-lotadmin` |
-| 后端工程师 | `BACKEND` | moxton-lotapi | `E:\moxton-lotapi` |
+1. `Execution` mode: there are active tasks in `01-tasks/active/*`.
+2. `Planning` mode: no active tasks, then split new requirements into template tasks.
 
-> 💡 **按角色组织任务可以避免领错任务！** 角色 AI 提示词在 [.claude/agents/](.claude/agents/)
+Team Lead coordinates and delegates. Downstream role agents implement code.
 
----
+## Repository Structure
 
-## 📊 项目概览
+- `01-tasks/` task system (`backlog/`, `active/`, `completed/`, templates, locks)
+- `02-api/` backend API docs
+- `03-guides/` integration and QA guides
+- `04-projects/` cross-repo coordination docs
+- `05-verification/` QA verification reports
+- `.codex/agents/` Codex role prompts and protocol
+- `.claude/` legacy Claude workflow assets
+- `scripts/assign_task.py` task split, lock, dispatch, doctor
 
-| 项目 | 类型 | 端口 | 状态 | 完成度 |
-|------|------|------|------|--------|
-| [nuxt-moxton](../nuxt-moxton/) | Nuxt 3 商城前端 | 3000 | 🟢 活跃 | 95% |
-| [moxton-lotadmin](../moxton-lotadmin/) | Vue 3 管理后台 | 3002 | 🟢 活跃 | 90% |
-| [moxton-lotapi](../moxton-lotapi/) | Koa 后端 API | 3006 | 🟢 活跃 | 95% |
+## Quick Start
 
----
-
-## 🚀 快速开始
-
-### 创建新任务
-
-**方式 A: 使用开发计划编写指南**
-
-如果你不确定如何创建任务，请参考 [.claude/skills/development-plan-guide.md](.claude/skills/development-plan-guide.md)，它包含：
-- 任务归属决策树
-- 角色识别指南
-- 命名规范说明
-- 任务拆分方法
-- 示例场景
-
-**方式 B: 直接创建任务**
-
-**1. 选择角色模板**
+Run from `E:\moxton-docs`:
 
 ```bash
-# 独立站前端任务
-cp 01-tasks/templates/tech-spec-shop-frontend.md \
-   01-tasks/active/shop-frontend/SHOP-FE-001-new-feature.md
-
-# CRUD前端任务
-cp 01-tasks/templates/tech-spec-admin-frontend.md \
-   01-tasks/active/admin-frontend/ADMIN-FE-001-new-feature.md
-
-# 后端任务
-cp 01-tasks/templates/tech-spec-backend.md \
-   01-tasks/active/backend/BACKEND-001-new-api.md
+python scripts/assign_task.py --standard-entry
+python scripts/assign_task.py --doctor
+python scripts/assign_task.py --show-lock
 ```
 
-**2. 填写任务详情**
-
-编辑任务文档，填写：
-- 任务标题和描述
-- 技术方案
-- 实施步骤
-- 验收标准
-
-**3. 分配任务**
-
-```
-@独立站前端 请实现 SHOP-FE-001 任务
-@CRUD前端 请实现 ADMIN-FE-001 任务
-@后端 请实现 BACKEND-001 任务
-```
-
-### 按角色查看任务
+If planning is needed:
 
 ```bash
-# 查看独立站前端任务
-ls 01-tasks/active/shop-frontend/
-
-# 查看 CRUD前端任务
-ls 01-tasks/active/admin-frontend/
-
-# 查看后端任务
-ls 01-tasks/active/backend/
+python scripts/assign_task.py --split-request "<requirement text>"
 ```
 
----
+If execution is needed:
 
-## 📁 目录结构
-
-```
-E:\moxton-docs/
-├── README.md                  # 本文件
-├── QUICKSTART.md              # 快速开始指南
-├── .claude/
-│   └── skills/
-│       ├── development-plan-guide.md  # 📝 开发计划编写指南
-│       ├── task-assignment.md         # 任务分配器
-│       └── examples/                  # 示例任务场景
-│
-├── .claude/
-│   ├── agents/               # 🎭 AI 角色提示词（固定行为）
-│   │   ├── shop-frontend.md
-│   │   ├── admin-frontend.md
-│   │   └── backend.md
-│   └── skills/               # 📝 项目 Skills
-│
-├── 01-tasks/                  # 任务管理（按角色分类）
-│   ├── active/
-│   │   ├── shop-frontend/    # 独立站前端任务
-│   │   ├── admin-frontend/   # CRUD前端任务
-│   │   └── backend/          # 后端任务
-│   ├── backlog/
-│   │   ├── shop-frontend/
-│   │   ├── admin-frontend/
-│   │   └── backend/
-│   ├── completed/
-│   │   ├── shop-frontend/
-│   │   ├── admin-frontend/
-│   │   └── backend/
-│   ├── templates/            # 角色专用模板
-│   │   ├── tech-spec-shop-frontend.md
-│   │   ├── tech-spec-admin-frontend.md
-│   │   └── tech-spec-backend.md
-│   └── STATUS.md             # 任务状态总览
-│
-├── 02-api/                    # API 文档中心
-│   ├── auth.md               # 认证系统
-│   ├── cart.md               # 购物车
-│   ├── orders.md             # 订单管理
-│   └── ...                   # 其他模块
-│
-├── 03-guides/                 # 集成指南
-│   ├── README.md
-│   └── stripe-elements.md
-│
-├── 04-projects/               # 项目协调
-│   ├── nuxt-moxton.md        # 商城前端状态
-│   ├── moxton-lotadmin.md    # 管理后台状态
-│   ├── moxton-lotapi.md      # 后端 API 状态
-│   ├── DEPENDENCIES.md       # 依赖关系图
-│   └── COORDINATION.md       # 协调状态
-│
-├── 05-verification/           # 验证报告
-│   ├── 2026-02/
-│   └── SUMMARY.md
-│
-└── 06-archive/                # 历史归档
-    ├── 2026-01/
-    └── bmad-plans/           # BMAD 开发计划归档
+```bash
+python scripts/assign_task.py --scan
+python scripts/assign_task.py --write-brief
 ```
 
----
+## Locking Model
 
-## 🎯 任务分配系统
+Two lock layers are used to avoid dual-runner conflicts:
 
-### 角色专属任务
+1. Runner lock: `01-tasks/ACTIVE-RUNNER.md`
+2. Task lock: `01-tasks/TASK-LOCKS.json`
 
-每个角色只看自己的任务目录，避免混淆：
+Common commands:
 
+```bash
+python scripts/assign_task.py --lock codex
+python scripts/assign_task.py --lock-task <TASK-ID> --task-owner team-lead
+python scripts/assign_task.py --show-task-locks --task-lock-ttl-hours 24
+python scripts/assign_task.py --reap-stale-locks --task-lock-ttl-hours 24
 ```
-独立站前端 → 01-tasks/active/shop-frontend/
-CRUD前端   → 01-tasks/active/admin-frontend/
-后端       → 01-tasks/active/backend/
+
+## Multi-Agent Orchestration
+
+Use:
+
+- `.codex/agents/team-lead.md`
+- `.codex/agents/protocol.md`
+- `04-projects/CODEX-TEAM-BRIEF.md`
+
+Flow:
+
+1. Team Lead creates/updates task files.
+2. Team Lead dispatches role dev/qa agents in parallel.
+3. Cross-agent communication is relayed by Team Lead using route envelopes.
+4. QA returns PASS/FAIL evidence.
+5. Team Lead asks user before moving tasks to `completed/`.
+
+## QA Baseline
+
+See `03-guides/qa-tooling-stack.md`.
+
+- SHOP-FE / ADMIN-FE: Playwright-based QA (`test:e2e`)
+- BACKEND: Vitest + API tests (`test:api`)
+
+MCP preflight:
+
+```bash
+codex mcp list
 ```
 
-### 任务命名规范
+Expected servers include `playwright` and `vitest`.
 
-| 角色 | 代码 | 示例文件名 |
-|------|------|-----------|
-| 独立站前端 | `SHOP-FE` | `SHOP-FE-001-stripe-integration.md` |
-| CRUD前端 | `ADMIN-FE` | `ADMIN-FE-001-product-management.md` |
-| 后端 | `BACKEND` | `BACKEND-001-payment-api.md` |
+## UTF-8 Session Guard
 
-### 防止领错任务
+If you use PowerShell on Windows, run:
 
-1. **按角色隔离** - 不同角色的任务在不同目录
-2. **代码标识** - 文件名前缀明确标识角色
-3. **专属模板** - 每个角色有专属的任务模板
-4. **职责说明** - 清晰定义每个角色的职责范围
+```bash
+powershell -ExecutionPolicy Bypass -File scripts/enable_utf8_session.ps1
+powershell -ExecutionPolicy Bypass -File scripts/utf8_doctor.ps1
+```
 
----
+This prevents console/pipeline encoding issues that can produce mojibake.
 
-## 📦 历史归档
+## Related Docs
 
-### BMAD 开发计划
-
-之前的 BMAD 系统产生的开发计划已归档到 `06-archive/bmad-plans/`：
-
-- **26 个任务文档** - 包括前端、后端、管理后台
-- **已实现功能** - 这些计划中的大部分功能已经实现
-- **参考价值** - 可作为历史记录和功能参考
-
----
-
-## 🔧 维护规范
-
-### 任务分配规则
-
-1. **按角色创建** - 使用对应角色的模板创建任务
-2. **放入对应目录** - 任务文件放入对应角色的目录
-3. **使用标准命名** - 遵循命名规范
-4. **更新状态** - 创建后更新 STATUS.md
-
-### API 变更流程
-
-1. 后端更新代码 → 更新 [02-api/](02-api/) 对应模块
-2. 更新 [04-projects/moxton-lotapi.md](04-projects/moxton-lotapi.md) 变更日志
-3. 通知前端更新 [03-guides/](03-guides/) 集成指南
-
----
-
-## 📖 相关文档
-
-### 核心文档
-- [AI 角色定义](.claude/agents/) - Agent Teams 使用的角色提示词
-- [任务状态总览](01-tasks/STATUS.md) - 当前任务状态
-- [项目协调状态](04-projects/) - 三端项目协调信息
-- [API 文档](02-api/) - 后端 API 规范
-
-### AI Skills
-- [开发计划编写指南](.claude/skills/development-plan-guide.md) - 指导 AI 如何编写开发计划
-- [任务分配器](.claude/skills/task-assignment.md) - 自动任务分配工具
-- [示例场景](.claude/skills/examples/) - 各种任务编写示例
-
----
-
-**文档版本**: v2.2.0 | **更新日期**: 2026-02-08 | **主要变更**: 添加开发计划编写指南 Skill
+- `AGENTS.md` repository operating rules
+- `CODEX.md` Codex Team Lead runtime context
+- `QUICKSTART.md` practical command walk-through
+- `01-tasks/STATUS.md` task status summary
+- `04-projects/CODEX-AGENT-TEAMS.md` migration notes
