@@ -1,0 +1,6 @@
+root = true
+
+[*.{md,py,ps1,txt,json,toml,yml,yaml,sh,js,ts}]
+charset = utf-8
+insert_final_newline = true
+trim_trailing_whitespace = true

@@ -1,213 +1,222 @@
 #!/usr/bin/env node
 
 /**
- * Agent Teams 并行开发执行器
- *
- * 当用户确认执行开发时，自动创建 Agent Team 并分配任务给三个项目
+ * Claude compatibility hook for Agent Teams.
+ * Reads active tasks and generates Team Lead orchestration context.
+ * Respects both runner lock and task-level locks.
  */
 
 const fs = require('fs');
 const path = require('path');
 
-/**
- * 读取 Agent 提示词文件
- */
-function readAgentPrompt(filePath) {
+function readActiveRunner(cwd) {
   try {
-    if (fs.existsSync(filePath)) {
-      return fs.readFileSync(filePath, 'utf-8');
+    const lockPath = path.join(cwd, '01-tasks', 'ACTIVE-RUNNER.md');
+    if (!fs.existsSync(lockPath)) return 'none';
+    const text = fs.readFileSync(lockPath, 'utf-8');
+    const match = text.match(/^\s*runner\s*:\s*(.+)\s*$/im);
+    if (!match) return 'none';
+    const runner = String(match[1] || '').trim().toLowerCase();
+    if (runner === 'codex' || runner === 'claude' || runner === 'none') {
+      return runner;
     }
-  } catch (error) {
-    // 文件读取失败，返回 null
+  } catch (_error) {
+    return 'none';
   }
-  return null;
+  return 'none';
 }
 
-/**
- * 扫描 01-tasks/active/ 下的任务
- */
-function scanTasks(cwd) {
+function readTaskLocks(cwd) {
+  try {
+    const filePath = path.join(cwd, '01-tasks', 'TASK-LOCKS.json');
+    if (!fs.existsSync(filePath)) return {};
+    const raw = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    const locks = raw && typeof raw === 'object' ? raw.locks : {};
+    if (!locks || typeof locks !== 'object') return {};
+
+    const normalized = {};
+    for (const [taskId, entry] of Object.entries(locks)) {
+      if (!entry || typeof entry !== 'object') continue;
+      normalized[String(taskId).trim().toUpperCase()] = {
+        runner: String(entry.runner || '').trim().toLowerCase(),
+        owner: String(entry.owner || '').trim(),
+        state: String(entry.state || '').trim().toLowerCase()
+      };
+    }
+    return normalized;
+  } catch (_error) {
+    return {};
+  }
+}
+
+function hasExecutionIntent(promptText) {
+  const text = String(promptText || '').toLowerCase();
+  const keywords = [
+    '开始执行', '开始开发', '执行开发',
+    'create team', 'agent team', 'parallel',
+    'execute', 'start', 'implement', 'team'
+  ];
+  return keywords.some((k) => text.includes(k.toLowerCase()));
+}
+
+function taskIdFromFileName(name) {
+  const base = String(name || '').replace(/\.md$/i, '');
+  const match = base.match(/^([A-Z]+(?:-[A-Z]+)?-\d+)-/i);
+  return match ? match[1].toUpperCase() : '';
+}
+
+function scanTasks(cwd, taskLocks) {
   const roles = {
     'SHOP-FE': {
       dir: path.join(cwd, '01-tasks', 'active', 'shop-frontend'),
       workDir: 'E:\\nuxt-moxton',
-      name: 'shop-fe',
-      agentType: 'general-purpose',
-      systemPrompt: readAgentPrompt(path.join(cwd, '.claude', 'agents', 'shop-frontend.md')),
+      devName: 'shop-fe',
       qaName: 'shop-fe-qa',
-      qaWorkDir: 'E:\\nuxt-moxton',
-      qaPrompt: readAgentPrompt(path.join(cwd, '.claude', 'agents', 'shop-fe-qa.md'))
+      devPrompt: '.claude/agents/shop-frontend.md',
+      qaPrompt: '.claude/agents/shop-fe-qa.md',
+      prefixes: ['SHOP-FE-']
     },
     'ADMIN-FE': {
       dir: path.join(cwd, '01-tasks', 'active', 'admin-frontend'),
       workDir: 'E:\\moxton-lotadmin',
-      name: 'admin-fe',
-      agentType: 'general-purpose',
-      systemPrompt: readAgentPrompt(path.join(cwd, '.claude', 'agents', 'admin-frontend.md')),
+      devName: 'admin-fe',
       qaName: 'admin-fe-qa',
-      qaWorkDir: 'E:\\moxton-lotadmin',
-      qaPrompt: readAgentPrompt(path.join(cwd, '.claude', 'agents', 'admin-fe-qa.md'))
+      devPrompt: '.claude/agents/admin-frontend.md',
+      qaPrompt: '.claude/agents/admin-fe-qa.md',
+      prefixes: ['ADMIN-FE-']
     },
     'BACKEND': {
       dir: path.join(cwd, '01-tasks', 'active', 'backend'),
       workDir: 'E:\\moxton-lotapi',
-      name: 'backend',
-      agentType: 'general-purpose',
-      systemPrompt: readAgentPrompt(path.join(cwd, '.claude', 'agents', 'backend.md')),
+      devName: 'backend',
       qaName: 'backend-qa',
-      qaWorkDir: 'E:\\moxton-lotapi',
-      qaPrompt: readAgentPrompt(path.join(cwd, '.claude', 'agents', 'backend-qa.md'))
+      devPrompt: '.claude/agents/backend.md',
+      qaPrompt: '.claude/agents/backend-qa.md',
+      prefixes: ['BACKEND-', 'BUG-']
     }
   };
 
-  const tasksByRole = {};
+  const result = {};
 
-  for (const [roleCode, config] of Object.entries(roles)) {
+  for (const [roleCode, cfg] of Object.entries(roles)) {
     try {
-      if (fs.existsSync(config.dir)) {
-        const files = fs.readdirSync(config.dir);
-        const taskFiles = files.filter(f => f.endsWith('.md') && f.startsWith(roleCode));
+      if (!fs.existsSync(cfg.dir)) continue;
+      const files = fs.readdirSync(cfg.dir)
+        .filter((f) => f.endsWith('.md'))
+        .filter((f) => cfg.prefixes.some((prefix) => f.startsWith(prefix)))
+        .filter((f) => {
+          const taskId = taskIdFromFileName(f);
+          const lock = taskLocks[taskId];
+          return !!(lock && lock.runner === 'claude');
+        });
+      if (files.length === 0) continue;
 
-        if (taskFiles.length > 0) {
-          tasksByRole[roleCode] = {
-            ...config,
-            tasks: taskFiles.map(f => ({
-              file: f,
-              path: path.join(config.dir, f)
-            }))
-          };
-        }
-      }
-    } catch (error) {
-      // 目录不存在或为空，跳过
+      result[roleCode] = {
+        ...cfg,
+        tasks: files.map((f) => ({
+          file: f,
+          path: path.join(cfg.dir, f)
+        }))
+      };
+    } catch (_error) {
+      // ignore role read errors
     }
   }
 
-  return tasksByRole;
+  return result;
 }
 
-/**
- * 生成团队创建指令
- */
-function generateTeamInstruction(tasksByRole, cwd) {
-  const roles = Object.keys(tasksByRole);
-  const totalMembers = roles.length * 2; // 每个角色 1 个开发 + 1 个 QA
-  const teamLeadPrompt = readAgentPrompt(path.join(cwd, '.claude', 'agents', 'team-lead.md'));
+function buildTeamInstruction(tasksByRole, cwd) {
+  const lines = [];
+  lines.push('Please create a Claude Agent Team for moxton development.');
+  lines.push('');
+  lines.push('Team Lead:');
+  lines.push(`- workdir: ${cwd}`);
+  lines.push('- prompt: .claude/agents/team-lead.md');
+  lines.push('- do not code directly, coordinate only');
+  lines.push('');
+  lines.push('Members by role:');
 
-  let instruction = `请创建一个名为 "moxton-development" 的 Agent Team。\n\n`;
-
-  instruction += `## Team Lead（你）\n`;
-  instruction += `- 工作目录: ${cwd}\n`;
-  instruction += `- 系统提示词: .claude/agents/team-lead.md\n`;
-  instruction += `- 职责: 协调团队、分配任务、监督进度，**不直接编写代码**\n\n`;
-
-  instruction += `## 队友 (${totalMembers} 个)\n\n`;
-
-  for (const [roleCode, config] of Object.entries(tasksByRole)) {
-    const taskList = config.tasks.map(t => t.file).join(', ');
-
-    // 开发工程师
-    instruction += `### ${config.name} (${roleCode}) - 开发\n`;
-    instruction += `- 工作目录: ${config.workDir}\n`;
-    instruction += `- 任务: ${taskList}\n`;
-    instruction += `- 系统提示词: .claude/agents/${roleCode.toLowerCase().replace('-', '-')}.md\n`;
-    instruction += `- 职责: 阅读 ${config.workDir}/CLAUDE.md 了解项目规范\n\n`;
-
-    // QA 测试工程师
-    instruction += `### ${config.qaName} (${roleCode}) - 测试\n`;
-    instruction += `- 工作目录: ${config.qaWorkDir}\n`;
-    instruction += `- 任务: 测试 ${config.name} 完成的功能\n`;
-    instruction += `- 系统提示词: .claude/agents/${config.qaName}.md\n`;
-    instruction += `- 职责: 使用 MCP 工具测试功能，检查接口和错误\n\n`;
+  for (const [roleCode, cfg] of Object.entries(tasksByRole)) {
+    const taskList = cfg.tasks.map((t) => t.file).join(', ');
+    lines.push(`- ${roleCode}`);
+    lines.push(`  - dev: ${cfg.devName}`);
+    lines.push(`  - qa: ${cfg.qaName}`);
+    lines.push(`  - repo: ${cfg.workDir}`);
+    lines.push(`  - dev prompt: ${cfg.devPrompt}`);
+    lines.push(`  - qa prompt: ${cfg.qaPrompt}`);
+    lines.push(`  - tasks: ${taskList}`);
   }
 
-  instruction += `### Team Lead 工作流程\n`;
-  instruction += `1. 你作为 Team Lead，**不要直接修改代码文件**\n`;
-  instruction += `2. 分析任务，将任务文档分配给对应的开发队友\n`;
-  instruction += `3. 开发队友完成后，分配给对应的 QA 队友测试\n`;
-  instruction += `4. 使用 "@队友-名 请执行任务：{任务路径}" 的格式分配\n`;
-  instruction += `5. QA 测试通过后，标记任务完成\n\n`;
+  lines.push('');
+  lines.push('Execution flow:');
+  lines.push('1) Team Lead assigns tasks to role dev agent.');
+  lines.push('2) Dev agent implements in target repo and reports back.');
+  lines.push('3) Team Lead assigns QA verification.');
+  lines.push('4) QA reports PASS/FAIL to Team Lead.');
+  lines.push('5) Team Lead asks user before marking docs completed.');
 
-  instruction += `### 测试验收流程\n`;
-  instruction += `开发队友完成 → QA 队友测试 → 汇报结果 → Team Lead 确认\n\n`;
-
-  instruction += `### 重要提醒\n`;
-  instruction += `- 你的工作目录是 ${cwd}，**不要切换到项目目录**\n`;
-  instruction += `- 你是指挥官，不是士兵！让队友去执行开发和测试\n`;
-  instruction += `- 只负责协调、分配、审查，不负责写代码或测试\n`;
-
-  return instruction;
+  return lines.join('\n');
 }
 
-// 主逻辑：从 stdin 读取 JSON 输入
-let inputData = '';
+function toTaskSummary(tasksByRole) {
+  return Object.entries(tasksByRole)
+    .map(([role, cfg]) => `${role}: ${cfg.tasks.map((t) => t.file).join(', ')}`)
+    .join('\n');
+}
 
+let inputData = '';
 process.stdin.on('data', (chunk) => {
   inputData += chunk;
 });
 
 process.stdin.on('end', () => {
   try {
-    const input = JSON.parse(inputData);
-
-    // 检查是否在 moxton-docs 目录下
+    const input = JSON.parse(inputData || '{}');
     const cwd = input.cwd || '';
-    if (!cwd.includes('moxton-docs')) {
+    if (!String(cwd).includes('moxton-docs')) {
       process.exit(0);
     }
 
-    // 获取用户消息
-    const userMessage = (input.prompt || '').toLowerCase();
-
-    // 检测执行意图的关键词（更精确，避免误触发）
-    const executeKeywords = [
-      '开始执行', '开始开发', '执行开发',
-      'execute', 'start', 'implement',
-      '创建团队', 'agent team', '并行开发',
-      '创建agent team', '创建agent', 'team'
-    ];
-
-    const shouldExecute = executeKeywords.some(keyword =>
-      userMessage.includes(keyword)
-    );
-
-    if (!shouldExecute) {
+    const runner = readActiveRunner(cwd);
+    if (runner !== 'none' && runner !== 'claude') {
       process.exit(0);
     }
 
-    // 扫描任务
-    const tasksByRole = scanTasks(cwd);
+    if (!hasExecutionIntent(input.prompt || '')) {
+      process.exit(0);
+    }
 
+    const taskLocks = readTaskLocks(cwd);
+    const tasksByRole = scanTasks(cwd, taskLocks);
     if (Object.keys(tasksByRole).length === 0) {
       const output = {
-        message: '⚠️ 没有找到可执行的任务',
-        suggestion: '请在 01-tasks/active/ 下的角色目录中创建任务文档'
+        hookSpecificOutput: {
+          hookEventName: 'UserPromptSubmit',
+          additionalContext:
+            'No active task locked for runner=claude in 01-tasks/TASK-LOCKS.json.'
+        }
       };
       console.log(JSON.stringify(output));
       process.exit(0);
     }
 
-    // 返回团队创建指令
-    const instruction = generateTeamInstruction(tasksByRole, cwd);
-    const taskSummary = Object.entries(tasksByRole).map(([role, config]) =>
-      `${role}: ${config.tasks.map(t => t.file).join(', ')}`
-    ).join('\n');
+    const summary = toTaskSummary(tasksByRole);
+    const instruction = buildTeamInstruction(tasksByRole, cwd);
 
-    // 使用正确的 UserPromptSubmit JSON 格式
     const output = {
       hookSpecificOutput: {
-        "hookEventName": "UserPromptSubmit",
-        "additionalContext": `🚀 检测到开发执行意图，准备创建 Agent Team\n\n## 发现的任务\n${taskSummary}\n\n## 团队创建指令\n${instruction}`
+        hookEventName: 'UserPromptSubmit',
+        additionalContext:
+          `Detected execution intent for Claude Agent Teams.\n\n` +
+          `Active locked tasks:\n${summary}\n\n` +
+          `Team instruction:\n${instruction}`
       }
     };
 
-    // 输出 JSON 格式
     console.log(JSON.stringify(output));
     process.exit(0);
-
-  } catch (error) {
-    // 错误时静默退出，避免干扰正常使用
-    // console.error('Hook error:', error.message);
+  } catch (_error) {
     process.exit(0);
   }
 });

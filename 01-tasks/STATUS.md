@@ -1,83 +1,82 @@
-# ??????
+# 任务状态总览
 
-**????**: 2026-02-10
-**????**: 0 ?????
+**更新时间**: 2026-02-25
+**活跃任务**: 0 个
 
-## ????
+## 项目映射
 
-| ?? | ?? | ?? | ???? |
+| 角色 | 标识 | 项目 | 仓库路径 |
 |------|------|------|----------|
-| ???????? | `SHOP-FE` | nuxt-moxton | `E:\nuxt-moxton` |
-| CRUD????? | `ADMIN-FE` | moxton-lotadmin | `E:\moxton-lotadmin` |
-| ????? | `BACKEND` | moxton-lotapi | `E:\moxton-lotapi` |
+| 独立站前端 | `SHOP-FE` | nuxt-moxton | `E:\nuxt-moxton` |
+| 管理后台前端 | `ADMIN-FE` | moxton-lotadmin | `E:\moxton-lotadmin` |
+| 后端 | `BACKEND` | moxton-lotapi | `E:\moxton-lotapi` |
 
-## ????
+## 任务统计
 
-| ?? | ??? | ?? | ??? | ?? |
-|------|--------|------|--------|------|
-| ????? | 0 | 0 | 1 | 1 |
-| CRUD?? | 0 | 0 | 6 | 6 |
-| ?? | 0 | 0 | 10 | 10 |
-| **??** | **0** | **0** | **17** | **17** |
+| 角色 | backlog | active | completed | 总计 |
+|------|---------|--------|-----------|------|
+| SHOP-FE | 0 | 0 | 1 | 1 |
+| ADMIN-FE | 0 | 0 | 6 | 6 |
+| BACKEND | 0 | 0 | 10 | 10 |
+| **总计** | **0** | **0** | **17** | **17** |
 
-## ????
+## 目录结构
 
 ```
 01-tasks/
-?? active/
-?  ?? shop-frontend/      # ???????
-?  ?? admin-frontend/     # CRUD????
-?  ?? backend/            # ????
-?? backlog/
-?  ?? shop-frontend/
-?  ?? admin-frontend/
-?  ?? backend/
-?? completed/
-   ?? shop-frontend/
-   ?? admin-frontend/
-   ?? backend/
+|-- active/
+|   |-- shop-frontend/
+|   |-- admin-frontend/
+|   `-- backend/
+|-- backlog/
+|   |-- shop-frontend/
+|   |-- admin-frontend/
+|   `-- backend/
+|-- completed/
+|   |-- shop-frontend/
+|   |-- admin-frontend/
+|   `-- backend/
+`-- templates/
 ```
 
-## ????
+## 当前活跃任务
 
-????????
+当前没有 `active` 任务。
 
----
+## backlog 任务
 
-## ?????
+当前没有 `backlog` 任务。
 
-### ????? (SHOP-FE)
+## 已完成任务
 
-| ??ID | ?? |
+### 独立站前端 (SHOP-FE)
+
+| 任务ID | 标题 |
 |--------|------|
-| [SHOP-FE-001](./completed/shop-frontend/SHOP-FE-001-stripe-elements-integration.md) | Stripe Elements ?? |
+| [SHOP-FE-001](./completed/shop-frontend/SHOP-FE-001-stripe-elements-integration.md) | stripe elements integration |
 
----
+### 管理后台前端 (ADMIN-FE)
 
-### CRUD?? (ADMIN-FE)
-
-| ??ID | ?? |
+| 任务ID | 标题 |
 |--------|------|
-| [ADMIN-FE-001](./completed/admin-frontend/ADMIN-FE-001-online-order-management.md) | ?????? |
-| [ADMIN-FE-001](./completed/admin-frontend/ADMIN-FE-001-status-display-fix.md) | ???????? |
-| [ADMIN-FE-002](./completed/admin-frontend/ADMIN-FE-002-operation-confirmation.md) | ???????? |
-| [ADMIN-FE-003](./completed/admin-frontend/ADMIN-FE-003-order-history-ui.md) | ???? UI ?? |
-| [ADMIN-FE-004](./completed/admin-frontend/ADMIN-FE-004-remove-invalid-buttons.md) | ?????? |
-| [ADMIN-FE-005](./completed/admin-frontend/ADMIN-FE-005-supplement-shipping-info.md) | ?????? UI |
+| [ADMIN-FE-001](./completed/admin-frontend/ADMIN-FE-001-online-order-management.md) | online order management |
+| [ADMIN-FE-001](./completed/admin-frontend/ADMIN-FE-001-status-display-fix.md) | status display fix |
+| [ADMIN-FE-002](./completed/admin-frontend/ADMIN-FE-002-operation-confirmation.md) | operation confirmation |
+| [ADMIN-FE-003](./completed/admin-frontend/ADMIN-FE-003-order-history-ui.md) | order history ui |
+| [ADMIN-FE-004](./completed/admin-frontend/ADMIN-FE-004-remove-invalid-buttons.md) | remove invalid buttons |
+| [ADMIN-FE-005](./completed/admin-frontend/ADMIN-FE-005-supplement-shipping-info.md) | supplement shipping info |
 
----
+### 后端 (BACKEND)
 
-### ?? (BACKEND)
-
-| ??ID | ?? |
+| 任务ID | 标题 |
 |--------|------|
-| [BACKEND-001](./completed/backend/BACKEND-001-ship-api-optional-tracking.md) | ???????? |
-| [BACKEND-002](./completed/backend/BACKEND-002-admin-order-detail-api.md) | ??????? API |
-| [BACKEND-002](./completed/backend/BACKEND-002-order-history-feature.md) | ???????? |
-| [BACKEND-003](./completed/backend/BACKEND-003-cleanup-expired-orders.md) | ????????? |
-| [BACKEND-003](./completed/backend/BACKEND-003-order-payment-stripe-fix.md) | ???? + Stripe ???? |
-| [BACKEND-004](./completed/backend/BACKEND-004-update-shipping-info.md) | ??/???????? |
-| [BACKEND-005](./completed/backend/BACKEND-005-keyword-search-fix.md) | ???? keyword ?? |
-| [BUG-001](./completed/backend/BUG-001-order-api-500-error.md) | ???? API 500 ?? |
-| [BUG-002](./completed/backend/BUG-002-order-items-field-name.md) | ?? items ????? |
-| [BUG-004](./completed/backend/BUG-004-stripe-payment-intent-params.md) | Stripe Payment Intent ???? |
+| [BACKEND-001](./completed/backend/BACKEND-001-ship-api-optional-tracking.md) | ship api optional tracking |
+| [BACKEND-002](./completed/backend/BACKEND-002-admin-order-detail-api.md) | admin order detail api |
+| [BACKEND-002](./completed/backend/BACKEND-002-order-history-feature.md) | order history feature |
+| [BACKEND-003](./completed/backend/BACKEND-003-cleanup-expired-orders.md) | cleanup expired orders |
+| [BACKEND-003](./completed/backend/BACKEND-003-order-payment-stripe-fix.md) | order payment stripe fix |
+| [BACKEND-004](./completed/backend/BACKEND-004-update-shipping-info.md) | update shipping info |
+| [BACKEND-005](./completed/backend/BACKEND-005-keyword-search-fix.md) | keyword search fix |
+| [BUG-001](./completed/backend/BUG-001-order-api-500-error.md) | order api 500 error |
+| [BUG-002](./completed/backend/BUG-002-order-items-field-name.md) | order items field name |
+| [BUG-004](./completed/backend/BUG-004-stripe-payment-intent-params.md) | stripe payment intent params |

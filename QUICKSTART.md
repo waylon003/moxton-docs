@@ -1,164 +1,138 @@
-# 快速开始：任务自动分配系统
+﻿# 快速开始（Codex / Claude 双机制）
 
-## 🚀 30秒快速开始
+本仓库是三个代码仓的共享任务中台：
+- `E:\nuxt-moxton`
+- `E:\moxton-lotadmin`
+- `E:\moxton-lotapi`
 
-> 💡 **新用户提示**: 如果你是第一次接手 Moxton 项目，建议先阅读 [.claude/skills/development-plan-guide.md](.claude/skills/development-plan-guide.md) 了解如何编写开发计划。
-
-### 1. 启动主会话
-
-在 moxton-docs 目录启动 Claude Code：
+## 1) 进入文档仓
 
 ```bash
 cd E:\moxton-docs
-claude-code .
 ```
 
-### 2. 查看可用任务
-
-**方式 A: 使用脚本**
-```bash
-python scripts/assign_task.py --list
-```
-
-**方式 B: 直接查看**
-- 打开 `01-tasks/STATUS.md`
-- 或查看 `01-tasks/active/` 目录
-
-### 3. 分配任务
-
-**最简单的方式：**
-
-```
-@FRONTEND 请实现 FRONTEND-007 任务
-```
-
-**或使用具体命令：**
-
-```
-Task(
-  subagent_type='oh-my-claudecode:executor',
-  prompt='阅读并实现 E:\moxton-docs\01-tasks\active\FRONTEND-007-checkout-address-integration.md',
-  model='sonnet'
-)
-```
-
----
-
-## 📋 当前可用任务
-
-### 前端任务 (FRONTEND)
-- **FRONTEND-007**: checkout-address-integration
-- **FRONTEND-008**: cart-refactor-to-stores
-- **FRONTEND-009**: frontend-stripe-elements
-
-### 后端任务 (BACKEND)
-- **BACKEND-002**: order-address-optimization
-- **BACKEND-003**: backend-stripe-elements
-- **BACKEND-004**: order-payment-integration-fix
-
-### 管理后台任务 (ADMIN)
-- 查看 `01-tasks/backlog/ADMIN-*.md`
-
----
-
-## 💡 使用示例
-
-### 示例 1: 分配前端任务
-
-```
-@FRONTEND 请实现 FRONTEND-007：结账地址集成
-```
-
-Agent 会：
-1. 读取任务文档
-2. 切换到 `E:\nuxt-moxton`
-3. 开始实现功能
-
-### 示例 2: 分配后端任务
-
-```
-@BACKEND 请实现 BACKEND-003：Stripe Elements 后端集成
-```
-
-Agent 会：
-1. 读取任务文档
-2. 切换到 `E:\moxton-lotapi`
-3. 开始实现 API
-
-### 示例 3: 批量分配
-
-```
-请分配所有待处理的 FRONTEND 任务
-```
-
----
-
-## 🔧 工具命令
-
-### Python 脚本
+## 2) 查看当前执行器锁（强烈建议先做）
 
 ```bash
-# 列出所有活跃任务
-python scripts/assign_task.py --list
+python scripts/assign_task.py --show-lock
+```
 
-# 扫描并建议分配
+## 2.1) 查看 Team Lead 标准模式（执行态 / 规划态）
+
+```bash
+python scripts/assign_task.py --standard-entry
+```
+
+## 2.2) 一键自检（建议每次会话先执行）
+
+```bash
+python scripts/assign_task.py --doctor
+```
+
+自检会检查：
+- runner lock / task lock / 过期锁
+- 模板与角色提示词是否缺失
+- 三个代码仓路径与 QA 脚本是否就绪
+- Codex MCP 配置（playwright/vitest）是否存在
+
+## 2.3) UTF-8 session guard (recommended)
+
+```bash
+powershell -ExecutionPolicy Bypass -File scripts/enable_utf8_session.ps1
+powershell -ExecutionPolicy Bypass -File scripts/utf8_doctor.ps1
+```
+
+If the doctor reports warnings, keep using explicit UTF-8 for file writes in PowerShell commands.
+
+## 3) 选择本次执行器（避免双机制误触发）
+
+Codex:
+```bash
+python scripts/assign_task.py --lock codex
+```
+
+Claude:
+```bash
+python scripts/assign_task.py --lock claude
+```
+
+解锁（不建议长期使用）：
+```bash
+python scripts/assign_task.py --lock none
+```
+
+## 4) 扫描活跃任务
+
+```bash
 python scripts/assign_task.py --scan
-
-# 查看特定任务详情
-python scripts/assign_task.py FRONTEND-007
 ```
 
-### 状态查看
+## 5) 给即将执行的任务加任务级锁（强烈建议）
 
 ```bash
-# 查看任务状态总览
-cat 01-tasks/STATUS.md
-
-# 查看项目状态
-cat 04-projects/nuxt-moxton.md
-cat 04-projects/moxton-lotapi.md
-cat 04-projects/moxton-lotadmin.md
+python scripts/assign_task.py --show-task-locks
+python scripts/assign_task.py --lock-task SHOP-FE-001 --task-owner team-lead
 ```
 
----
-
-## 🎯 任务状态流转
-
-```
-backlog/ → active/ → completed/
-   ↓         ↓          ↓
-  待办     进行中     已完成
+任务完成后解锁：
+```bash
+python scripts/assign_task.py --unlock-task SHOP-FE-001
+python scripts/assign_task.py --reap-stale-locks --task-lock-ttl-hours 24
 ```
 
-### 移动任务
+## 6) Codex 多代理并行入口
 
 ```bash
-# 将任务从 backlog 移到 active
-mv 01-tasks/backlog/FRONTEND-010-*.md 01-tasks/active/
-
-# 将完成的任务移到 completed
-mv 01-tasks/active/FRONTEND-007-*.md 01-tasks/completed/
+python scripts/assign_task.py --write-brief
 ```
 
----
+使用以下文件启动 Team Lead：
+- `04-projects/CODEX-TEAM-BRIEF.md`
+- `.codex/agents/team-lead.md`
+- `.codex/agents/protocol.md`
+- `.codex/agents/doc-updater.md`（后端 API 变更时触发）
+- `03-guides/qa-tooling-stack.md`（QA 工具栈与命令基线）
 
-## ✨ 最佳实践
+建议在每次会话启动后先检查 MCP：
+```bash
+codex mcp list
+```
+期望至少有：
+- `playwright`（`@playwright/mcp`）
+- `vitest`（`@djankies/vitest-mcp`）
 
-1. **文档优先** - 先在 `01-tasks/` 创建任务文档
-2. **清晰命名** - 使用 `FRONTEND-001-feature-name.md` 格式
-3. **状态同步** - 完成后更新 `01-tasks/STATUS.md`
-4. **从 moxton-docs 启动** - 保持主会话在文档仓库
+## 7) 单任务分派（要求该任务已被当前 runner 锁定）
 
----
+Codex:
+```bash
+python scripts/assign_task.py SHOP-FE-001 --provider codex
+```
 
-## 📚 更多文档
+Claude 兼容输出:
+```bash
+python scripts/assign_task.py SHOP-FE-001 --provider claude
+```
 
-### 任务相关
-- [.claude/skills/development-plan-guide.md](.claude/skills/development-plan-guide.md) - 开发计划编写指南
-- [.claude/skills/examples/](.claude/skills/examples/) - 任务编写示例
-- [01-tasks/STATUS.md](01-tasks/STATUS.md) - 任务状态总览
+## 8) 收口
 
-### 项目相关
-- [04-projects/](04-projects/) - 项目协调状态
-- [02-api/](02-api/) - API 文档
-- [.claude/agents/](.claude/agents/) - AI 角色定义
+1. QA 通过后先由 Team Lead 向你汇报。
+2. 你确认后再移动任务文件到 `01-tasks/completed/`。
+3. 更新 `01-tasks/STATUS.md`。
+
+## 兼容说明
+
+- `.claude/*` 保留可用。
+- `.codex/*` 是当前默认主流程。
+- `01-tasks/ACTIVE-RUNNER.md` 是共享执行器锁，两个机制都会读取。
+- `01-tasks/TASK-LOCKS.json` 是任务级锁，未持锁任务不可分派。
+
+## 可选：一条需求自动拆分为模板化任务
+
+```bash
+python scripts/assign_task.py --split-request "实现支付状态全链路：后端新增状态接口，admin 新增状态管理，shop 展示支付状态"
+```
+
+可指定角色：
+```bash
+python scripts/assign_task.py --split-request-file req.md --split-roles SHOP-FE,ADMIN-FE,BACKEND
+```
