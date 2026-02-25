@@ -1,0 +1,25 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./.claude/hooks/agent-teams-runner.js"
+          }
+        ]
+      }
+    ]
+  },
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "teammateMode": "auto",
+  "disableSkills": [
+    "oh-my-claudecode:autopilot",
+    "oh-my-claudecode:ultrawork",
+    "oh-my-claudecode:ralph",
+    "oh-my-claudecode:swarm",
+    "oh-my-claudecode:ultrapilot"
+  ]
+}

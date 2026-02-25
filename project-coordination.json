@@ -1,0 +1,119 @@
+{
+  "$schema": "./coordination-schema.json",
+  "meta": {
+    "version": "1.0.0",
+    "lastUpdated": "2025-02-04T14:00:00+08:00",
+    "description": "三端项目协调状态 - 让独立 Claude 会话相互感知"
+  },
+  "projects": {
+    "backend": {
+      "id": "backend",
+      "name": "moxton-lotapi",
+      "path": "E:\\moxton-lotapi",
+      "type": "koa-api",
+      "port": 3006,
+      "status": "active",
+      "lastModified": "2025-02-04T14:00:00+08:00",
+      "recentChanges": [
+        {
+          "timestamp": "2025-02-04T13:00:00+08:00",
+          "file": "src/routes/offline-orders.ts",
+          "change": "DELETE /admin/batch → POST /admin/batch/delete",
+          "reason": "koa-bodyparser 不支持 DELETE 请求体解析",
+          "affects": ["admin"]
+        }
+      ]
+    },
+    "admin": {
+      "id": "admin",
+      "name": "moxton-lotadmin",
+      "path": "E:\\moxton-lotadmin",
+      "type": "vue3-admin",
+      "framework": "soybean-admin",
+      "port": 3002,
+      "status": "active",
+      "lastModified": "2025-02-04T13:00:00+08:00",
+      "recentChanges": [
+        {
+          "timestamp": "2025-02-04T13:00:00+08:00",
+          "file": "src/service/api/consultation-order.ts",
+          "change": "fetchBatchDeleteConsultationOrders: delete→post, /admin/batch→/admin/batch/delete",
+          "relatedTo": "backend",
+          "synced": true
+        }
+      ]
+    },
+    "frontend": {
+      "id": "frontend",
+      "name": "nuxt-moxton",
+      "path": "E:\\nuxt-moxton",
+      "type": "nuxt3-frontend",
+      "port": 3000,
+      "status": "active",
+      "lastModified": "2025-02-04T14:00:00+08:00",
+      "recentChanges": [
+        {
+          "timestamp": "2025-02-04T13:30:00+08:00",
+          "file": "components/shop/ConsultationModal.vue",
+          "change": "替换为 UiMaterialInput/UiMaterialTextarea，添加 novalidate",
+          "synced": true
+        },
+        {
+          "timestamp": "2025-02-04T13:30:00+08:00",
+          "file": "components/shop/CategorySelect.vue",
+          "change": "添加右箭头、自动展开选中子菜单、箭头颜色随选中变化",
+          "synced": true
+        },
+        {
+          "timestamp": "2025-02-04T14:00:00+08:00",
+          "file": "components/layout/Footer.vue",
+          "change": "移除 opacity:0 动画，添加 w-full 确保水平居中",
+          "synced": true
+        }
+      ]
+    }
+  },
+  "apiContracts": {
+    "offlineOrders": {
+      "batchDelete": {
+        "method": "POST",
+        "path": "/offline-orders/admin/batch/delete",
+        "description": "批量删除线下咨询订单（最多20条）",
+        "lastModified": "2025-02-04",
+        "backend": {
+          "file": "src/routes/offline-orders.ts",
+          "line": 47
+        },
+        "admin": {
+          "file": "src/service/api/consultation-order.ts",
+          "line": 172
+        }
+      },
+      "submit": {
+        "method": "POST",
+        "path": "/offline-orders",
+        "description": "提交咨询订单（支持游客和登录用户）",
+        "lastModified": "2025-02-04",
+        "frontend": {
+          "file": "components/shop/ConsultationModal.vue",
+          "supportsGuest": true,
+          "supportsAuth": true
+        }
+      }
+    },
+    "categories": {
+      "getTree": {
+        "method": "GET",
+        "path": "/categories/tree/active",
+        "description": "获取活跃分类树（包含子分类）",
+        "lastModified": "2025-02-04",
+        "frontend": {
+          "file": "components/shop/CategorySelect.vue",
+          "usage": "下拉菜单选择"
+        }
+      }
+    }
+  },
+  "pendingSync": [],
+  "alerts": []
+}
