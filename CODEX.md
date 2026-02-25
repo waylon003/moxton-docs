@@ -26,6 +26,8 @@ Use Codex in Team Lead mode:
 7. QA stack baseline is defined in `03-guides/qa-tooling-stack.md`.
 
 Primary orchestration entrypoints:
+- `.\teamlead.cmd <自然语言需求>` (recommended)
+- `.\teamlead.cmd -Doctor <自然语言需求>` (recommended + preflight)
 - `python scripts/assign_task.py --standard-entry`
 - `python scripts/assign_task.py --show-lock`
 - `python scripts/assign_task.py --lock codex`
@@ -36,6 +38,7 @@ Primary orchestration entrypoints:
 - `powershell -ExecutionPolicy Bypass -File scripts/enable_utf8_session.ps1`
 - `powershell -ExecutionPolicy Bypass -File scripts/utf8_doctor.ps1`
 - `python scripts/assign_task.py --lock-task <TASK-ID> --task-owner team-lead`
+- `python scripts/assign_task.py --intake "<natural language request>"`
 - `python scripts/assign_task.py --split-request "<requirement text>"`
 - `python scripts/assign_task.py --scan`
 - `python scripts/assign_task.py --write-brief`

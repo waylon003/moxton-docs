@@ -1,4 +1,4 @@
-# 任务状态总览
+﻿# 任务状态总览
 
 **更新时间**: 2026-02-25
 **活跃任务**: 0 个
@@ -16,9 +16,9 @@
 | 角色 | backlog | active | completed | 总计 |
 |------|---------|--------|-----------|------|
 | SHOP-FE | 0 | 0 | 1 | 1 |
-| ADMIN-FE | 0 | 0 | 6 | 6 |
-| BACKEND | 0 | 0 | 10 | 10 |
-| **总计** | **0** | **0** | **17** | **17** |
+| ADMIN-FE | 0 | 0 | 8 | 8 |
+| BACKEND | 0 | 0 | 12 | 12 |
+| **TOTAL** | **0** | **0** | **21** | **21** |
 
 ## 目录结构
 
@@ -65,6 +65,8 @@
 | [ADMIN-FE-003](./completed/admin-frontend/ADMIN-FE-003-order-history-ui.md) | order history ui |
 | [ADMIN-FE-004](./completed/admin-frontend/ADMIN-FE-004-remove-invalid-buttons.md) | remove invalid buttons |
 | [ADMIN-FE-005](./completed/admin-frontend/ADMIN-FE-005-supplement-shipping-info.md) | supplement shipping info |
+| [ADMIN-FE-006](./completed/admin-frontend/ADMIN-FE-006-order-detail-shipping-info-visibility-fix.md) | order detail shipping info visibility fix |
+| [ADMIN-FE-007](./completed/admin-frontend/ADMIN-FE-007-online-order-history-event-rendering-normalization.md) | online order history event rendering normalization |
 
 ### 后端 (BACKEND)
 
@@ -77,6 +79,9 @@
 | [BACKEND-003](./completed/backend/BACKEND-003-order-payment-stripe-fix.md) | order payment stripe fix |
 | [BACKEND-004](./completed/backend/BACKEND-004-update-shipping-info.md) | update shipping info |
 | [BACKEND-005](./completed/backend/BACKEND-005-keyword-search-fix.md) | keyword search fix |
+| [BACKEND-006](./completed/backend/BACKEND-006-admin-order-detail-include-metadata.md) | admin order detail include metadata |
+| [BACKEND-007](./completed/backend/BACKEND-007-online-order-history-event-contract-normalization.md) | online order history event contract normalization |
 | [BUG-001](./completed/backend/BUG-001-order-api-500-error.md) | order api 500 error |
 | [BUG-002](./completed/backend/BUG-002-order-items-field-name.md) | order items field name |
 | [BUG-004](./completed/backend/BUG-004-stripe-payment-intent-params.md) | stripe payment intent params |
+

@@ -26,10 +26,14 @@ Reproduce the same operating model in `codex-cli`:
 ## Quick Start (Codex)
 
 1. Open codex-cli in `E:\moxton-docs`.
+1.1 Preferred natural-language entry:
+   - `.\teamlead.cmd 请编写订单支付状态查询接口`
+   - `.\teamlead.cmd -Doctor 请开始创建团队执行当前任务`
 2. Set runner lock to codex:
    - `python scripts/assign_task.py --lock codex`
 3. (Optional) Split one requirement into template-based role tasks:
    - `python scripts/assign_task.py --split-request "<requirement text>"`
+   - or `python scripts/assign_task.py --intake "<natural language request>"`
 4. Lock tasks before dispatch:
    - `python scripts/assign_task.py --lock-task <TASK-ID> --task-owner team-lead`
    - (optional cleanup) `python scripts/assign_task.py --reap-stale-locks --task-lock-ttl-hours 24`
@@ -61,6 +65,7 @@ python scripts/assign_task.py --team-prompt
 ## Migration Notes
 
 - `.claude/hooks/agent-teams-runner.js` remains as legacy compatibility.
+- Codex currently has no Claude-style `UserPromptSubmit` hook injection API; this repo uses an outer-entry emulation (`teamlead.cmd` + `--intake`) to approximate hook-trigger behavior.
 - New default orchestration entrypoint is `scripts/assign_task.py` with `--team-prompt` or `--write-brief`.
 - Shared lock file `01-tasks/ACTIVE-RUNNER.md` is read by both codex and claude flows.
 - Task naming now follows role prefixes:

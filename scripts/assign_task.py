@@ -11,6 +11,7 @@ Examples:
   python scripts/assign_task.py --lock codex
   python scripts/assign_task.py --show-task-locks
   python scripts/assign_task.py --lock-task SHOP-FE-001 --task-owner team-lead
+  python scripts/assign_task.py --intake "请编写订单支付状态查询接口"
   python scripts/assign_task.py --split-request "Implement Stripe webhook + admin status UI + storefront payment status"
   python scripts/assign_task.py SHOP-FE-001 --provider codex
   python scripts/assign_task.py --team-prompt
@@ -342,6 +343,21 @@ def detect_roles_from_request(text: str) -> tuple[List[str], Dict[str, int]]:
 
     selected = [role for role, score in score_map.items() if score > 0]
     return selected, score_map
+
+
+def detect_intent(text: str) -> str:
+    lowered = text.lower()
+    best_intent = ""
+    best_score = 0
+    for intent, words in INTENT_KEYWORDS.items():
+        score = 0
+        for word in words:
+            if word.lower() in lowered:
+                score += 1
+        if score > best_score:
+            best_score = score
+            best_intent = intent
+    return best_intent if best_score > 0 else "unknown"
 
 
 def active_role_dir(root: Path, role: RoleConfig) -> Path:
@@ -1088,6 +1104,117 @@ def print_standard_entry(tasks: List[TaskInfo], root: Path) -> None:
     print("    python scripts/assign_task.py --split-request \"<requirement text>\"")
 
 
+def run_intake(
+    root: Path,
+    tasks: List[TaskInfo],
+    runner_lock: Dict[str, str],
+    args: argparse.Namespace,
+    intake_text: str,
+) -> int:
+    text = intake_text.strip()
+    if not text:
+        print("[ERROR] --intake requires non-empty text.")
+        return 1
+
+    intent = detect_intent(text)
+
+    if tasks:
+        print("[INTAKE] mode=EXECUTION")
+        print(f"  active_tasks: {len(tasks)}")
+        print(f"  intent: {intent}")
+        if intent != "create_team":
+            print("  note: unfinished tasks exist, so Team Lead stays in execution mode.")
+            print("  action: continue dispatch/monitor for current active tasks.")
+            print("[TEAM-LEAD] 请确认：是否现在开始创建团队执行这些任务？")
+            return 0
+
+        active_runner = runner_lock.get("runner", "none")
+        if active_runner not in ("none", "codex"):
+            print(
+                f"[LOCKED] runner is '{active_runner}', team brief generation requires codex flow. "
+                "Switch with: python scripts/assign_task.py --lock codex"
+            )
+            return 2
+        if active_runner == "none":
+            print("[WARN] runner lock is 'none'. Recommended: python scripts/assign_task.py --lock codex")
+
+        output_path = root / "04-projects" / "CODEX-TEAM-BRIEF.md"
+        write_codex_brief(output_path, tasks, root)
+        print(f"[OK] wrote brief: {output_path}")
+        print("[TEAM-LEAD] 请确认：是否现在开始创建团队执行这些任务？")
+        return 0
+
+    print("[INTAKE] mode=PLANNING")
+    print(f"  intent: {intent}")
+
+    title = (args.split_title or summarize_request_text(text, 48)).strip()
+    title = title if title else "cross-project-task"
+    priority = args.split_priority.upper()
+    parent_ref = args.split_parent.strip() or f"REQ-{datetime.now().astimezone().strftime('%Y%m%d-%H%M%S')}"
+
+    if args.split_roles:
+        role_codes = parse_role_list(args.split_roles)
+        role_scores: Dict[str, int] = {code: 0 for code in ROLE_CONFIGS.keys()}
+    else:
+        role_codes, role_scores = detect_roles_from_request(text)
+
+    if not role_codes:
+        print("[ERROR] unable to detect target roles from intake text.")
+        print("        pass explicit roles with --split-roles SHOP-FE,ADMIN-FE,BACKEND")
+        return 1
+
+    if args.split_preview:
+        print("[SPLIT] preview mode (no files written)")
+    else:
+        print("[SPLIT] creating template-based task files")
+    print(f"  title: {title}")
+    print(f"  priority: {priority}")
+    print(f"  parent_ref: {parent_ref}")
+    print(f"  roles: {', '.join(role_codes)}")
+    if not args.split_roles:
+        print("  role_scores:")
+        for code in ROLE_CONFIGS.keys():
+            print(f"    - {code}: {role_scores.get(code, 0)}")
+
+    created_paths = create_split_tasks(
+        root=root,
+        request_text=text,
+        title=title,
+        priority=priority,
+        role_codes=role_codes,
+        preview=args.split_preview,
+        parent_ref=parent_ref,
+    )
+
+    for file_path in created_paths:
+        print(f"  - {file_path}")
+
+    if not args.split_preview and not args.split_no_lock:
+        lock_runner = runner_lock["runner"]
+        if lock_runner in {"codex", "claude"}:
+            for file_path in created_paths:
+                task_match = TASK_NAME_RE.match(file_path.name)
+                if not task_match:
+                    continue
+                task_id = normalize_task_id(task_match.group(1))
+                upsert_task_lock(
+                    root,
+                    task_id=task_id,
+                    runner=lock_runner,
+                    owner="team-lead",
+                    state="assigned",
+                    note=f"auto-locked on split: {parent_ref}",
+                )
+            print(f"[OK] auto-locked generated tasks for runner '{lock_runner}'")
+        else:
+            print("[WARN] runner lock is none; generated tasks were not auto-locked.")
+            print("       set runner lock and use --lock-task for each task.")
+
+    if not args.split_preview:
+        print("[TEAM-LEAD] 请确认：是否现在开始创建团队执行这些任务？")
+    return 0
+
+
 def write_codex_brief(path: Path, tasks: List[TaskInfo], root: Path) -> None:
     grouped = group_tasks(tasks)
     lock = read_runner_lock(root)
@@ -1238,6 +1365,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--split-request",
         help="Split one high-level request into role task files using templates",
+    )
+    parser.add_argument(
+        "--intake",
+        help="Natural-language Team Lead intake; auto-select planning/execution mode",
+    )
+    parser.add_argument(
+        "--intake-file",
+        help="Read intake text from file",
     )
     parser.add_argument(
         "--split-request-file",
@@ -1391,6 +1526,32 @@ def main() -> int:
 
     if args.show_task_locks:
         print_task_locks(task_locks, tasks, args.task_lock_ttl_hours)
+        did_work = True
+
+    intake_text = ""
+    if args.intake:
+        intake_text = args.intake.strip()
+    elif args.intake_file:
+        intake_path = Path(args.intake_file)
+        if not intake_path.is_absolute():
+            intake_path = root / intake_path
+        if not intake_path.exists():
+            print(f"[ERROR] intake file not found: {intake_path}")
+            return 1
+        intake_text = intake_path.read_text(encoding="utf-8").strip()
+
+    if intake_text:
+        intake_code = run_intake(
+            root=root,
+            tasks=tasks,
+            runner_lock=runner_lock,
+            args=args,
+            intake_text=intake_text,
+        )
+        if intake_code != 0:
+            return intake_code
+        tasks = scan_active_tasks(root)
+        task_locks = read_task_locks(root)
         did_work = True
 
     split_request_text = ""
@@ -1587,6 +1748,7 @@ def main() -> int:
         print("  python scripts/assign_task.py --show-task-locks")
         print("  python scripts/assign_task.py --lock-task SHOP-FE-001 --task-owner team-lead")
         print("  python scripts/assign_task.py --unlock-task SHOP-FE-001")
+        print("  python scripts/assign_task.py --intake \"请编写xx接口\"")
         print("  python scripts/assign_task.py --split-request \"<requirement text>\"")
         print("  python scripts/assign_task.py --split-request-file req.md --split-roles SHOP-FE,ADMIN-FE")
         print("  python scripts/assign_task.py --list")

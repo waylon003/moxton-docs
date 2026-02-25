@@ -40,10 +40,18 @@ python scripts/assign_task.py --doctor
 python scripts/assign_task.py --show-lock
 ```
 
+自然语言入口（推荐，接近 Claude hook 触发体验）：
+
+```bash
+.\teamlead.cmd 请编写订单支付状态查询接口
+.\teamlead.cmd -Doctor 请开始创建团队执行当前任务
+```
+
 规划态（拆分需求）：
 
 ```bash
 python scripts/assign_task.py --split-request "<需求文本>"
+python scripts/assign_task.py --intake "请编写订单支付状态查询接口"
 ```
 
 执行态（建队入口）：

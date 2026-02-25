@@ -8,15 +8,142 @@ Use it in codex-cli to bootstrap a Team Lead + parallel sub-agent workflow.
 - Prompt file: `.codex/agents/team-lead.md`
 - Protocol: `.codex/agents/protocol.md`
 - Active runner lock: `codex` (`01-tasks/ACTIVE-RUNNER.md`)
-- Task lock file: `01-tasks/TASK-LOCKS.json` (locked tasks: `0`)
+- Task lock file: `01-tasks/TASK-LOCKS.json` (locked tasks: `4`)
 - Rule: coordinate only; ask user before moving tasks to `completed/`
 
 ## Active Roles
-- No active tasks found in `01-tasks/active/*`.
+### ADMIN-FE - Admin Frontend
+- Repo: `E:\moxton-lotadmin`
+- Dev prompt: `.codex/agents/admin-frontend.md`
+- QA prompt: `.codex/agents/admin-fe-qa.md`
+- QA tooling: `Primary: @playwright/test + microsoft/playwright-mcp. Fallback: repo smoke checks + targeted manual regression.`
+- QA primary commands:
+  - `pnpm typecheck`
+  - `pnpm lint`
+  - `pnpm build:test`
+  - `pnpm exec playwright test <spec-or-grep>  # if playwright tests exist`
+- QA fallback commands:
+  - `Execute task-focused manual browser regression and capture reproducible steps.`
+- Tasks:
+  - `01-tasks\active\admin-frontend\ADMIN-FE-006-order-detail-shipping-info-visibility-fix.md` (ADMIN-FE-006)
+  - `01-tasks\active\admin-frontend\ADMIN-FE-007-online-order-history-event-rendering-normalization.md` (ADMIN-FE-007)
+
+### BACKEND - Backend
+- Repo: `E:\moxton-lotapi`
+- Dev prompt: `.codex/agents/backend.md`
+- QA prompt: `.codex/agents/backend-qa.md`
+- QA tooling: `Primary: Vitest + Supertest (optionally via djankies/vitest-mcp). Fallback: existing node test-*.js scripts.`
+- QA primary commands:
+  - `npm run build`
+  - `npm run test:api  # Vitest + Supertest entrypoint when configured`
+- QA fallback commands:
+  - `Run targeted legacy scripts: node test-*.js`
+  - `Capture request/response evidence for PASS/FAIL.`
+- Tasks:
+  - `01-tasks\active\backend\BACKEND-006-admin-order-detail-include-metadata.md` (BACKEND-006)
+  - `01-tasks\active\backend\BACKEND-007-online-order-history-event-contract-normalization.md` (BACKEND-007)
 
 ## Codex Starter Prompt
 Paste this into codex-cli:
 
 ```text
-No active tasks found. Create files under 01-tasks/active/* first.
+Codex Team bootstrap prompt:
+
+You are the Team Lead coordinator in E:\moxton-docs.
+Use native Multi-agents mode and run role agents in parallel.
+Follow team-lead prompt file: .codex/agents/team-lead.md
+Follow messaging protocol: .codex/agents/protocol.md
+Run MCP preflight once: codex mcp list
+Ensure runner lock is codex: python scripts/assign_task.py --lock codex
+Ensure task-level lock before dispatch:
+  python scripts/assign_task.py --lock-task <TASK-ID> --task-owner team-lead
+
+Execution requirements:
+1) Create one dev sub-agent and one QA sub-agent per active role.
+2) Dev agents implement code in their target repo workdir.
+3) QA agents verify implementation and produce test evidence.
+4) If MCP servers are enabled, QA should prefer MCP tools (`playwright`, `vitest`).
+5) Team Lead relays cross-agent messages (no direct peer chat).
+6) Use a strict route envelope for every inter-agent message.
+7) Team Lead is coordination-only: never edit code repos, never run repo tests.
+8) Team Lead may inspect code repos in read-only mode for analysis.
+9) If asked to code directly, Team Lead must refuse and delegate to role dev agent.
+10) Permission requests go to Team Lead first; Team Lead auto-approves low-risk actions.
+11) Escalate to user only for high-risk/destructive/uncertain actions.
+12) Ask user before kickoff: 是否现在开始创建团队执行这些任务？
+13) Ask user before moving any task file to completed.
+14) If backend/API changes occur, trigger doc-updater for 02-api sync.
+15) Downstream agents may pull role context references from moxton-docs on demand.
+16) Team Lead should avoid force-feeding large context packets by default.
+
+Route envelope format:
+[ROUTE]
+from: <agent-name>
+to: <target-agent|team-lead>
+type: <status|question|blocker|handoff|review>
+task: <TASK-ID>
+body: <message>
+[/ROUTE]
+
+Relay loop:
+A) parse route envelopes from any agent message
+B) if target is another agent, forward via Team Lead
+C) acknowledge sender with relay status
+D) keep processing until all role tasks are QA PASS or blocked
+E) when backend contract changes, assign doc-updater before final closure
+
+Role assignments:
+- ADMIN-FE (Admin Frontend)
+  repo: E:\moxton-lotadmin
+  dev prompt: .codex/agents/admin-frontend.md
+  qa prompt: .codex/agents/admin-fe-qa.md
+  qa tooling: Primary: @playwright/test + microsoft/playwright-mcp. Fallback: repo smoke checks + targeted manual regression.
+  qa primary commands:
+    - pnpm typecheck
+    - pnpm lint
+    - pnpm build:test
+    - pnpm exec playwright test <spec-or-grep>  # if playwright tests exist
+  qa fallback commands:
+    - Execute task-focused manual browser regression and capture reproducible steps.
+  task files:
+    - 01-tasks\active\admin-frontend\ADMIN-FE-006-order-detail-shipping-info-visibility-fix.md
+    - 01-tasks\active\admin-frontend\ADMIN-FE-007-online-order-history-event-rendering-normalization.md
+  optional context references:
+    - E:\moxton-docs\01-tasks\STATUS.md
+    - E:\moxton-docs\04-projects\COORDINATION.md
+    - E:\moxton-docs\04-projects\DEPENDENCIES.md
+    - E:\moxton-docs\04-projects\moxton-lotadmin.md
+    - E:\moxton-docs\03-guides\qa-tooling-stack.md
+    - E:\moxton-docs\02-api\orders.md
+    - E:\moxton-docs\02-api\offline-orders.md
+    - E:\moxton-lotadmin\AGENTS.md
+
+- BACKEND (Backend)
+  repo: E:\moxton-lotapi
+  dev prompt: .codex/agents/backend.md
+  qa prompt: .codex/agents/backend-qa.md
+  qa tooling: Primary: Vitest + Supertest (optionally via djankies/vitest-mcp). Fallback: existing node test-*.js scripts.
+  qa primary commands:
+    - npm run build
+    - npm run test:api  # Vitest + Supertest entrypoint when configured
+  qa fallback commands:
+    - Run targeted legacy scripts: node test-*.js
+    - Capture request/response evidence for PASS/FAIL.
+  task files:
+    - 01-tasks\active\backend\BACKEND-006-admin-order-detail-include-metadata.md
+    - 01-tasks\active\backend\BACKEND-007-online-order-history-event-contract-normalization.md
+  optional context references:
+    - E:\moxton-docs\01-tasks\STATUS.md
+    - E:\moxton-docs\04-projects\COORDINATION.md
+    - E:\moxton-docs\04-projects\DEPENDENCIES.md
+    - E:\moxton-docs\04-projects\moxton-lotapi.md
+    - E:\moxton-docs\03-guides\qa-tooling-stack.md
+    - E:\moxton-docs\02-api\README.md
+    - E:\moxton-docs\02-api\CHANGELOG.md
+    - E:\moxton-lotapi\AGENTS.md
+
+Support role:
+- DOC-UPDATER (docs sync)
+  prompt: .codex/agents/doc-updater.md
+  trigger: backend/API contract changes
 ```

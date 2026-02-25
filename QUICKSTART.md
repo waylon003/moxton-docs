@@ -17,6 +17,17 @@ cd E:\moxton-docs
 python scripts/assign_task.py --show-lock
 ```
 
+## 2.0) 自然语言入口（推荐）
+
+```bash
+.\teamlead.cmd 请编写订单支付状态查询接口
+.\teamlead.cmd -Doctor 请开始创建团队执行当前任务
+```
+
+说明：
+- `teamlead.cmd` 会以 `NoProfile` 启动 PowerShell，再调用 `scripts/team_lead_start.ps1`。
+- 有活跃任务时自动进入 `Execution`；无活跃任务时自动进入 `Planning` 并模板拆分。
+
 ## 2.1) 查看 Team Lead 标准模式（执行态 / 规划态）
 
 ```bash
@@ -84,6 +95,7 @@ python scripts/assign_task.py --reap-stale-locks --task-lock-ttl-hours 24
 
 ```bash
 python scripts/assign_task.py --write-brief
+python scripts/assign_task.py --intake "请开始创建团队执行当前任务"
 ```
 
 使用以下文件启动 Team Lead：
@@ -130,6 +142,7 @@ python scripts/assign_task.py SHOP-FE-001 --provider claude
 
 ```bash
 python scripts/assign_task.py --split-request "实现支付状态全链路：后端新增状态接口，admin 新增状态管理，shop 展示支付状态"
+python scripts/assign_task.py --intake "请编写订单支付状态查询接口"
 ```
 
 可指定角色：

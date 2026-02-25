@@ -41,8 +41,10 @@ python scripts/assign_task.py --doctor
 powershell -ExecutionPolicy Bypass -File scripts/enable_utf8_session.ps1
 powershell -ExecutionPolicy Bypass -File scripts/utf8_doctor.ps1
 python scripts/assign_task.py --split-request "<requirement text>"  # auto split by templates
+python scripts/assign_task.py --intake "<natural language request>" # auto planning/execution intent
 python scripts/assign_task.py --team-prompt   # print codex bootstrap prompt
 python scripts/assign_task.py --write-brief   # generate 04-projects/CODEX-TEAM-BRIEF.md
+.\teamlead.cmd 请编写订单支付状态查询接口     # natural-language Team Lead entry
 codex mcp list                                # check MCP tool servers (playwright/vitest)
 cat 01-tasks/STATUS.md                        # view status summary
 ```
