@@ -46,14 +46,15 @@ body: <message body>
 2. If dependency on another role exists, send `type: question` or `type: blocker`.
 3. Team Lead relays to target role agent and returns response.
 4. On completion, developer sends `type: handoff` to Team Lead.
-5. Team Lead assigns QA agent and awaits `PASS/FAIL`.
+5. Team Lead assigns QA agent and awaits `PASS/FAIL/BLOCKED`.
 
 ## QA Result Contract
 - QA `type: review` messages must include:
   - commands run
   - reproducible steps
   - evidence summary (logs/screenshots/request-response)
-  - final decision (`PASS` or `FAIL`)
+  - failure classification for each failed command (`regression` or `env_blocker`)
+  - final decision (`PASS` or `FAIL` or `BLOCKED`)
 
 ## Compliance Check (Team Lead)
 - Team Lead may only perform `assign`, `relay`, `status`, `approval-request`, `close`.

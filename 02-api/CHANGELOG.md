@@ -2,6 +2,20 @@
 
 ## [未发布]
 
+### 2026-02-25
+
+#### 更新 (Changed)
+- **订单管理** - 更新 `GET /orders/admin/:id` 文档与示例
+  - 明确管理员详情返回 `metadata` 安全透传字段：`trackingNumber`、`carrier`、`shippingNotes`、`deliveryNotes`、`shippedAt`、`confirmedAt`
+  - 明确 `metadata` 解析失败或为空时返回空对象 `{}`
+- **订单管理** - 更新 `GET /orders/admin/:id/history` 历史契约说明
+  - 主 `action` 维持稳定集合：`CREATED`、`PAID`、`CONFIRMED`、`SHIPPED`、`DELIVERED`、`CANCELLED`
+  - shipping info 更新语义通过 `metadata.operation=SHIPPING_INFO_UPDATED` 与 `reasonCode=ORDER_SHIPPING_INFO_UPDATED` 表达
+  - 历史回读兼容旧记录：`SHIPPING_INFO_UPDATED` 归一化为 `SHIPPED`
+  - webhook 相关历史使用结构化字段 `metadata.source=STRIPE_WEBHOOK` + `reasonCode`
+- **鉴权语义** - 补充管理员端权限失败返回约定
+  - HTTP 状态码统一为 `200`，权限错误通过 `body.code=401/403` 表达
+
 ### 2026-02-09
 
 #### 新增 (Added)

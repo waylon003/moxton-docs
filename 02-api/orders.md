@@ -699,7 +699,15 @@ Authorization: Bearer <admin-token>
       "created": "2025-12-18T10:00:00.000Z",
       "updated": "2025-12-18T10:00:00.000Z"
     },
-    "remarks": "请包装仔细"
+    "remarks": "请包装仔细",
+    "metadata": {
+      "trackingNumber": "SF1234567890",
+      "carrier": "顺丰速运",
+      "shippingNotes": "轻拿轻放",
+      "deliveryNotes": "放前台",
+      "shippedAt": "2026-02-09T10:30:00.000Z",
+      "confirmedAt": "2026-02-10T08:15:00.000Z"
+    }
   },
   "timestamp": "2025-12-18T10:00:00.000Z",
   "success": true
@@ -707,10 +715,13 @@ Authorization: Bearer <admin-token>
 ```
 
 **注意**:
-- 与用户端点 `GET /orders/:id` 不同，此接口无权限限制
+- 与用户端点 `GET /orders/:id` 不同，此接口不受订单归属限制（仍需 Admin）
 - 管理员可以查看任何订单的完整详情
 - 使用 `OrderTransformer.transform()` 标准化响应格式
 - 包含完整的订单项、地址和客户信息
+- `metadata` 为安全解析后的对象；解析失败或无值时返回空对象 `{}`
+- 管理端可稳定读取字段：`trackingNumber`、`carrier`、`shippingNotes`、`deliveryNotes`、`shippedAt`、`confirmedAt`
+- 鉴权/权限失败场景统一返回 HTTP 200，具体业务错误码通过 `body.code` 表达（401/403）
 
 ---
 
@@ -858,6 +869,8 @@ curl -X PATCH "http://localhost:3000/orders/admin/{id}/shipping-info" \
 - 支持部分更新，只修改提供的字段
 - 更新后会在订单历史中记录操作
 - 物流信息存储在 `metadata` 对象中
+- 历史主 `action` 仍为 `SHIPPED`（不新增未约定 action），扩展语义写入 `metadata.operation = "SHIPPING_INFO_UPDATED"`
+- 同时写入 `metadata.reasonCode = "ORDER_SHIPPING_INFO_UPDATED"` 供前端本地化展示
 
 ---
 
@@ -1026,35 +1039,56 @@ curl -X PATCH "http://localhost:3000/orders/admin/{id}/shipping-info" \
       "id": "cmjbbtyw30000vf8g6bbietki",
       "orderId": "cmjbbtyw30000vf8g6bbietki",
       "action": "SHIPPED",
+      "reasonCode": "ORDER_SHIPPING_INFO_UPDATED",
       "operator": {
         "id": "admin-id-123",
         "username": "admin",
         "nickname": "管理员"
       },
-      "notes": "Carrier: 顺丰速运, Tracking: SF1234567890",
-      "metadata": "{\"trackingNumber\":\"SF1234567890\",\"carrier\":\"顺丰速运\"}",
+      "notes": "物流信息已更新",
+      "metadata": {
+        "operation": "SHIPPING_INFO_UPDATED",
+        "reasonCode": "ORDER_SHIPPING_INFO_UPDATED",
+        "trackingNumber": "SF1234567890",
+        "carrier": "顺丰速运",
+        "shippingNotes": "轻拿轻放"
+      },
       "createdAt": "2026-02-09T10:30:00.000Z"
     },
     {
       "id": "cmjbbtyw30000vf8g6bbietkj",
       "orderId": "cmjbbtyw30000vf8g6bbietki",
       "action": "CONFIRMED",
+      "reasonCode": "ORDER_AUTO_CONFIRMED_AFTER_PAYMENT",
       "operator": {
         "id": "admin-id-123",
         "username": "admin",
         "nickname": "管理员"
       },
-      "notes": "订单已确认",
-      "metadata": null,
+      "notes": "支付成功后系统自动确认订单",
+      "metadata": {
+        "fromStatus": "PAID",
+        "toStatus": "CONFIRMED",
+        "changedBy": "system",
+        "source": "STRIPE_WEBHOOK",
+        "reasonCode": "ORDER_AUTO_CONFIRMED_AFTER_PAYMENT"
+      },
       "createdAt": "2026-02-09T09:00:00.000Z"
     },
     {
       "id": "cmjbbtyw30000vf8g6bbietkk",
       "orderId": "cmjbbtyw30000vf8g6bbietki",
       "action": "PAID",
+      "reasonCode": "PAYMENT_STRIPE_SUCCEEDED",
       "operator": null,
       "notes": "支付成功",
-      "metadata": null,
+      "metadata": {
+        "fromStatus": "PENDING",
+        "toStatus": "PAID",
+        "changedBy": "system",
+        "source": "STRIPE_WEBHOOK",
+        "reasonCode": "PAYMENT_STRIPE_SUCCEEDED"
+      },
       "createdAt": "2026-02-09T08:30:00.000Z"
     },
     {
@@ -1085,7 +1119,12 @@ curl -X PATCH "http://localhost:3000/orders/admin/{id}/shipping-info" \
 **字段说明**:
 - `operator`: 操作员信息，系统自动操作（如支付）时为 `null`
 - `notes`: 操作备注，包含操作的详细信息
-- `metadata`: JSON 字符串，存储额外的结构化数据（如快递单号、快递公司等）
+- `reasonCode`: 可本地化原因码（可选，建议前端优先使用）
+- `metadata`: 结构化对象（`null` 表示无附加信息），用于承载扩展语义，如 `operation`、`source`、状态流转上下文
+- 历史主 `action` 返回稳定集合：`CREATED`、`PAID`、`CONFIRMED`、`SHIPPED`、`DELIVERED`、`CANCELLED`
+- shipping info 更新不新增 action，而是通过 `metadata.operation = SHIPPING_INFO_UPDATED` + `reasonCode = ORDER_SHIPPING_INFO_UPDATED` 表达
+- Stripe webhook 相关记录使用结构化字段：`metadata.source = STRIPE_WEBHOOK`，并配套 `reasonCode`
+- 历史读取会兼容旧数据：若旧记录 action 为 `SHIPPING_INFO_UPDATED`，接口返回时会归一化为 `SHIPPED`
 - 返回记录按时间倒序排列（最新的操作在前）
 
 ---
@@ -1175,8 +1214,8 @@ curl -X PATCH "http://localhost:3000/orders/admin/{id}/shipping-info" \
 
 **常见错误码**:
 - `400`: 请求参数错误
-- `401`: 未授权（缺少 token）
-- `403`: 禁止访问（权限不足）
+- `401`: 未授权（缺少 token，HTTP 状态码仍为 200，见 `body.code`）
+- `403`: 禁止访问（权限不足，HTTP 状态码仍为 200，见 `body.code`）
 - `404`: 订单不存在
 - `500`: 服务器错误
 
@@ -1270,8 +1309,8 @@ PENDING → CANCELLED (用户取消)
 - ✅ 添加详细地址验证规则
 - ✅ 添加权限验证逻辑说明
 
-**文档版本**: v2.3
-**验证状态**: ✅ 已验证与代码一致 (OrderController.getAdminOrderDetail + OrderTransformer)
+**文档版本**: v2.4
+**验证状态**: ✅ 已验证与代码一致 (BACKEND-006 + BACKEND-007)
 
 **2026-02-09**:
 - ✅ 新增 `PATCH /orders/admin/:id/shipping-info` - 补充/修改物流信息接口
@@ -1288,3 +1327,11 @@ PENDING → CANCELLED (用户取消)
 - ✅ 添加发货错误响应说明
 - ✅ 添加确认收货错误响应说明
 - ✅ 更新最佳实践：说明发货前需等待 Webhook 处理
+
+**2026-02-25**:
+- ✅ 管理员订单详情示例补充 `metadata` 安全回传字段：`trackingNumber`、`carrier`、`shippingNotes`、`deliveryNotes`、`shippedAt`、`confirmedAt`
+- ✅ 明确 `metadata` 解析失败/缺失时返回空对象 `{}`
+- ✅ 明确历史主 `action` 为稳定集合，shipping info 更新通过 `metadata.operation` + `reasonCode` 表达
+- ✅ 明确历史回读兼容：旧 `SHIPPING_INFO_UPDATED` 归一化为 `SHIPPED`
+- ✅ 明确 webhook 历史结构化字段：`metadata.source` + `reasonCode`
+- ✅ 明确权限语义：HTTP 200 + `body.code`（401/403）
